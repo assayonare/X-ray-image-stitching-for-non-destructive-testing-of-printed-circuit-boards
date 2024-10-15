@@ -10,34 +10,38 @@
 int main ()
 {
     setlocale (0, "Russian");
-    cv:: Mat img1 = cv::imread("image1.jpg", cv:: IMREAD_GRAYSCALE);
-    cv:: Mat img2 = cv::imread("image2.jpg", cv:: IMREAD_GRAYSCALE);
-    
+    cv:: Mat img1 = cv::imread("test1_1.jpg", cv:: IMREAD_GRAYSCALE);
+    cv:: Mat img2 = cv::imread("test1_2.jpg", cv:: IMREAD_GRAYSCALE);
+    // img1.convertTo(img1, CV_8U);
+    // img2.convertTo(img2, CV_8U);
     if (img1.empty() || img2.empty()){
         std::cerr << "Не удалось загрузить изображение";
         return -1;
     }
 
-    cv:: Ptr<cv::ORB> orb = cv::ORB::create();
+    //cv:: Ptr<cv::ORB> orb = cv::ORB::create();
     std::vector<cv::KeyPoint> keypoints1, keypoints2;
     cv:: Mat descriptors1, descriptors2;
 
-    orb->detectAndCompute(img1, cv::Mat(), keypoints1, descriptors1);
-    orb->detectAndCompute(img2, cv::Mat(), keypoints2, descriptors2);
+    cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
+    sift->detectAndCompute(img1, cv::Mat(), keypoints1, descriptors1);
+    sift->detectAndCompute(img2, cv::Mat(), keypoints2, descriptors2);
 
-    cv::BFMatcher bf(cv::NORM_HAMMING);
+    cv::FlannBasedMatcher matcher(new cv::flann::KDTreeIndexParams(), new cv::flann::SearchParams());
+    descriptors1.convertTo(descriptors1, CV_32F);
+    descriptors2.convertTo(descriptors2, CV_32F);
     std::vector<std::vector<cv::DMatch>> knn_matches;
-    bf.knnMatch(descriptors1, descriptors2, knn_matches, 2);
+    matcher.knnMatch(descriptors1, descriptors2, knn_matches, 2);
 
     const float ratio_thresh = 0.75f;
     std:: vector<cv::DMatch> good_matches;
     
-   for (size_t i =0; i < knn_matches.size(); i++){
-        if (knn_matches[i][0].distance < ratio_thresh*knn_matches[i][1].distance){
-            good_matches.push_back(knn_matches[i][0]);
+    for (const auto& match : knn_matches) {
+        if (match[0].distance < ratio_thresh * match[1].distance) {
+            good_matches.push_back(match[0]);
         }
-   }
-    if (good_matches.size() < 20) {
+    }
+    if (good_matches.size() < 7) {
 
         std:: cerr << "Недостаточно совпадений";
         return -1;
@@ -53,7 +57,7 @@ int main ()
     }
 
 
-   // Метод афинного преобразования
+   //Метод афинного преобразования
     cv::Mat affine_matrix = cv::estimateAffinePartial2D(points2, points1);
   
 
@@ -74,45 +78,68 @@ int main ()
     
     cv::Size result_size(static_cast<int>(std::ceil(max_x - min_x)), static_cast<int>(std::ceil(max_y - min_y)));
 
-    cv::Mat result(result_size, img1.type(), cv::Scalar::all(0));
+    cv::Mat result(result_size, img1.type(), cv::Scalar::all(255));
 
     cv:: Mat translation_matrix = (cv::Mat_<double>(2, 3) << 1, 0, -min_x, 0 , 1, -min_y);
     
-    cv::warpAffine(img1, result, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
+    cv::warpAffine(img1, result, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+    // cv::imshow("img1", img1);
+    // cv::imshow("img2", img2);
+    //cv::drawKeypoints(img1, keypoints1, result);
+    //cv::drawKeypoints(img2, keypoints2, result);
     
-   
-    cv::Mat combined_matrix = cv::Mat::zeros(2, 3, CV_64F);
-
-
-    affine_matrix(cv::Rect(0, 0, 2, 2)).copyTo(combined_matrix(cv::Rect(0, 0, 2, 2)));  
-
-    // Обновляем трансляцию
-    combined_matrix.at<double>(0, 2) = affine_matrix.at<double>(0, 2) + translation_matrix.at<double>(0, 2);
-    combined_matrix.at<double>(1, 2) = affine_matrix.at<double>(1, 2) + translation_matrix.at<double>(1, 2);
+    cv::imshow("result", result);
+    cv::waitKey(0);
 
     cv::Mat img2_transformed;
-    cv::warpAffine(img2, img2_transformed, combined_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
 
+    cv::Mat img2_shifted;
+    cv::warpAffine(img2, img2_shifted, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+
+// Теперь применяем affine_matrix после сдвига
+    cv::warpAffine(img2_shifted, img2_transformed, affine_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
    
-    cv::normalize(result, result, 0, 255, cv::NORM_MINMAX);
-    cv::normalize(img2_transformed, img2_transformed, 1, 255, cv::NORM_MINMAX);
-    cv::imshow("Сшитое изображение", result);
+
+    cv::imshow("result", result);
     cv::waitKey(0);
 
-    cv::imshow("Сшитое изображение", img2_transformed);
+    cv::imshow("img2_transformed", img2_transformed);
     cv::waitKey(0);
-    cv::addWeighted(result, 0.45, img2_transformed, 0.35, 0.2, result);
 
-   // Гомографическое преобразование
-    // cv:: Mat homography = cv::findHomography(points2, points1, cv::RANSAC);
+    
+    cv::Mat mask = cv::Mat::zeros(result.size(), CV_32F);
 
-    // cv:: Mat img2_transformed;
-    // cv::warpPerspective(img2, img2_transformed, homography, img1.size());
+    int blendWidth = 50; // Ширина области смешивания (можно подстроить)
+    
+    cv::Rect blendRect(static_cast<int>(img2_transformed_corners[0].x), 
+                   static_cast<int>(img2_transformed_corners[0].y), 
+                   img2.cols + blendWidth, img2.rows + blendWidth);
+    
 
-    // cv:: Mat result;
-    // cv::addWeighted(img1, 0.5, img2_transformed, 0.5, 0.0, result);
+    
+    for (int y = blendRect.y; y < blendRect.y + blendRect.height && y < mask.rows; ++y) {
+        for (int x = blendRect.x; x < blendRect.x + blendRect.width && x < mask.cols; ++x) {
+            float alpha = static_cast<float>(x - blendRect.x) / blendWidth;
+            alpha = std::min(std::max(alpha, 0.0f), 1.0f); // Ограничиваем значение в диапазоне [0, 1]
+            mask.at<float>(y, x) = alpha;
+        }
+    }
+    
 
-    cv::imshow("Сшитое изображение", result);
+// Преобразуем изображения в 32-битный формат, чтобы выполнить смешивание
+    result.convertTo(result, CV_32F);
+    img2_transformed.convertTo(img2_transformed, CV_32F);
+
+// Плавное смешивание изображений в области перекрытия
+    cv::Mat blended;
+    blended = result.mul(1.0 - mask) + img2_transformed.mul(mask);
+    std::cout << "ошибка не тут5" << std::endl;
+    
+// Приводим результат обратно в 8-битный формат для отображения
+    blended.convertTo(blended, CV_8U);
+
+// Отображаем сшитое изображение
+    cv::imshow("Сшитое изображение", blended);
     cv::waitKey(0);
 
     return 0;
