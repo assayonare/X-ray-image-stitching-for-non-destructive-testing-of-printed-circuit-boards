@@ -1,344 +1,335 @@
-// #include <iostream>
-// #include <string>
-// #include "opencv2/opencv.hpp"
-// #include <opencv2/features2d.hpp>
-// #include <opencv2/highgui.hpp>
-// #include <opencv2/imgproc.hpp>
-// #include <opencv2/calib3d.hpp>
-
-
-
-// int main ()
-// {
-//     setlocale (0, "Russian");
-//     int n = 20;
-//     int k = 0;
-//     std::string name_image2;
-//     std::string name_image3;
-//     cv:: Mat img2;
-//     cv:: Mat img1;
-    
-    
-//     //std::string name_image3 = "stitching_image" + std::to_string(0)+ ".tiff";
-//     //std::string write_name;
-
-//     for (int i = 1; i < n; i++) {
-//         if(i%5 == 0){
-//             continue;
-//         }
-//         std::string name_image1 = "testing\\wholeImage_" + std::to_string(i+1)+ "_20.tiff";
-//         img1 = cv::imread(name_image1, cv:: IMREAD_GRAYSCALE);
-        
-//         std:: cout << "i: "<< i << std:: endl;
-//         std:: cout << "k: "<< k << std:: endl;
-//         name_image3 = "stitching_image" + std::to_string(k)+ ".tiff";
-//         if(i%5 == 1) {
-            
-//             name_image2 = "testing\\wholeImage_" + std::to_string(i)+ "_20.tiff";
-//             img2 = cv::imread(name_image2, cv:: IMREAD_GRAYSCALE);
-            
-//         }
-//         else{
-//             img2 = cv::imread(name_image3, cv:: IMREAD_GRAYSCALE);
-//         }
-            
-        
-//         //std:: cout << "Сшивка изображения" << std::to_string(i+1) << std:: endl;
-
-//         img1.convertTo(img1, CV_8U);
-//         img2.convertTo(img2, CV_8U);
-
-
-//         // cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(2.0, cv::Size(8, 8));
-//         // clahe->apply(img1, img1);
-//         // clahe->apply(img2, img2);
-
-
-//         if (img1.empty() || img2.empty()){
-//             std::cerr << "?? ??????? ????????? ???????????";
-//             return -1;
-//         }
-
-        
-//         std::vector<cv::KeyPoint> keypoints1, keypoints2;
-//         cv:: Mat descriptors1, descriptors2;
-       
-//         cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();//cv::AKAZE::DESCRIPTOR_KAZE, 3, 0.001f, 4);
-
-//         std:: cout << "checkpointSIFT1" << std::endl;
-//         akaze->detectAndCompute(img1, cv::Mat(), keypoints1, descriptors1);
-
-//         std:: cout << "checkpointSIFT2" << std::endl;
-//         akaze->detectAndCompute(img2, cv::Mat(), keypoints2, descriptors2);
-        
-        
-//         //cv::BFMatcher matcher(cv::NORM_HAMMING, true); 
-//         cv::FlannBasedMatcher matcher(new cv::flann::KDTreeIndexParams(), new cv::flann::SearchParams());
-//         descriptors1.convertTo(descriptors1, CV_32F);
-//         descriptors2.convertTo(descriptors2, CV_32F);
-//         std::vector<std::vector<cv::DMatch>> knn_matches;
-//         matcher.knnMatch(descriptors1, descriptors2, knn_matches, 2);
-
-
-//         std:: cout << "checkpoint2" << std::endl;
-
-//         const float ratio_thresh = 0.75f;
-//         std:: vector<cv::DMatch> good_matches;
-        
-//         for (const auto& match : knn_matches) {
-//             if (match[0].distance < ratio_thresh * match[1].distance) {
-//                 good_matches.push_back(match[0]);
-//             }
-//         }
-
-//         if (good_matches.size() < 4) {
-
-//             descriptors1.release();
-//             descriptors2.release();
-//             keypoints1.clear();
-//             keypoints2.clear();
-//             good_matches.clear();
-//             knn_matches.clear();
-
-//             std:: cout << "??? 4, ?????? SIFT1" << std::endl;
-
-//             cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
-
-//             sift->detectAndCompute(img1, cv::Mat(), keypoints1, descriptors1);
-
-//             std:: cout << "SIFT2" << std::endl;
-//             sift->detectAndCompute(img2, cv::Mat(), keypoints2, descriptors2);
-            
-            
-//             //cv::BFMatcher matcher(cv::NORM_HAMMING, true); 
-//             cv::FlannBasedMatcher matcher(new cv::flann::KDTreeIndexParams(), new cv::flann::SearchParams());
-//             descriptors1.convertTo(descriptors1, CV_32F);
-//             descriptors2.convertTo(descriptors2, CV_32F);
-//             matcher.knnMatch(descriptors1, descriptors2, knn_matches, 2);
-
-
-//             const float ratio_thresh = 0.75f;
-//             std:: vector<cv::DMatch> good_matches;
-            
-//             for (const auto& match : knn_matches) {
-//                 if (match[0].distance < ratio_thresh * match[1].distance) {
-//                     good_matches.push_back(match[0]);
-//                 }
-//             }
-//             if (good_matches.size() < 4){
-//                 std::cout << "SIFT не проканал" << std::endl;
-//                 continue;
-//             }
-//         }
-
-
-
-//         std:: cout << "checkpoint3" << std::endl;
-
-
-//         std::vector<cv::Point2f> points1, points2;
-
-//         for (size_t i =0; i < good_matches.size(); i++){
-
-//             points1.push_back(keypoints1[good_matches[i].queryIdx].pt);
-//             points2.push_back(keypoints2[good_matches[i].trainIdx].pt);
-//         }
-
-
-//         std:: cout << "checkpoint4" << std::endl;
-
-//     //Метод афинного преобразования
-//         cv::Mat affine_matrix = cv::estimateAffinePartial2D(points2, points1);
-
-//         std::vector<cv::Point2f> img2_corners(3);
-
-//         img2_corners[0] = cv::Point2f(0,0);
-//         img2_corners[1] = cv::Point2f(static_cast<float>(img2.cols), 0);
-//         img2_corners[2] = cv::Point2f(0, static_cast<float>(img2.rows));
-//         std::vector<cv::Point2f> img2_transformed_corners(3);
-
-//         std::cout << "img2_corners size: " << img2_corners.size() << std::endl;
-//         std::cout << "affine_matrix size: " << affine_matrix.size() << std::endl;
-//         std::cout << "affine_matrix type: " << affine_matrix.type() << std::endl;
-//         cv::transform(img2_corners, img2_transformed_corners, affine_matrix);
-
-
-//         std:: cout << "checkpoint5" << std::endl;
-
-//         float min_x = std::min(0.0f, std::min({img2_transformed_corners[0].x, img2_transformed_corners[1].x, img2_transformed_corners[2].x }));
-//         float min_y = std::min(0.0f, std::min({img2_transformed_corners[0].y, img2_transformed_corners[1].y, img2_transformed_corners[2].y}));
-//         float max_x = std::max(static_cast<float>(img1.cols), std::max({img2_transformed_corners[0].x, img2_transformed_corners[1].x, img2_transformed_corners[2].x}));
-//         float max_y = std::max(static_cast<float>(img1.rows), std::max({img2_transformed_corners[0].y, img2_transformed_corners[1].y, img2_transformed_corners[2].y}));
-        
-//         cv::Size result_size(static_cast<int>(std::ceil(max_x - min_x)), static_cast<int>(std::ceil(max_y - min_y)));
-
-//         cv::Mat result(result_size, img1.type(), cv::Scalar::all(255));
-
-//         cv:: Mat translation_matrix = (cv::Mat_<double>(2, 3) << 1, 0, -min_x, 0 , 1, -min_y);
-        
-//         cv::warpAffine(img1, result, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-        
-        
-//         std:: cout << "checkpoint6" << std::endl;
-        
-//         // cv::imshow("img1", img1);
-//         // cv::imshow("img2", img2);
-//         //cv::drawKeypoints(img1, keypoints1, result);
-//         //cv::drawKeypoints(img2, keypoints2, result);
-        
-//         //cv::imshow("result", result);
-//         //cv::waitKey(0);
-
-//         cv::Mat img2_transformed;
-
-//         cv::Mat img2_shifted;
-//         cv::warpAffine(img2, img2_shifted, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-
-//         // Теперь применяем affine_matrix после сдвига
-//         cv::warpAffine(img2_shifted, img2_transformed, affine_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-    
-//         std:: cout << "checkpoint7" << std::endl;
-//         cv::Mat mask = cv::Mat::zeros(result.size(), CV_32F);
-//         int blendWidth = 100;
-        
-//         // вариант1
-//         cv::Rect blendRect(static_cast<int>(img2_transformed_corners[0].x), 
-//                     static_cast<int>(img2_transformed_corners[0].y), 
-//                     img2.cols + blendWidth, img2.rows + blendWidth);
-        
-
-//         blendRect.x = std::max(blendRect.x, 0);
-//         blendRect.y = std::max(blendRect.y, 0);
-//         blendRect.width = std::min(blendRect.width + blendWidth, mask.cols - blendRect.x);
-//         blendRect.height = std::min(blendRect.height + blendWidth, mask.rows - blendRect.y);
-
-//         for (int y = blendRect.y; y < blendRect.y + blendRect.height && y < mask.rows; ++y) {
-//             for (int x = blendRect.x; x < blendRect.x + blendRect.width && x < mask.cols; ++x) {
-//                 float alpha = static_cast<float>(y - blendRect.y) / blendWidth;
-//                 alpha = std::min(std::max(alpha, 0.0f), 1.0f); // Ограничиваем значение в диапазоне [0, 1]
-                
-//                     mask.at<float>(y, x) = alpha;
-                
-            
-//             }
-//         }
-//         // ввариант1
-//         std:: cout << "checkpoint8" << std::endl;
-
-
-
-
-//        // cv::imwrite("Mask2.tiff", mask);
-    
-//     // Преобразуем изображения в 32-битный формат, чтобы выполнить смешивание
-//         result.convertTo(result, CV_32F);
-//         img2_transformed.convertTo(img2_transformed, CV_32F);
-
-//         std:: cout << "checkpoint9" << std::endl;
-//     // Плавное смешивание изображений в области перекрытия
-
-//         cv::Mat blended;
-
-//         // std:: cout << mask << std:: endl;
-
-//         blended = result.mul(1.0 - mask) + img2_transformed.mul(mask);
-        
-        
-        
-//     // Приводим результат обратно в 8-битный формат для отображения
-//         blended.convertTo(blended, CV_16F);
-
-//     // Отображаем сшитое изображение
-//         // if(i%6 == 5 || i == 1) {
-//         //     write_name = "stitching_image"+ std::to_string((i+1)/6) + ".tiff";
-
-//         // }
-        
-//         cv::imwrite(name_image3, blended);
-//         blended.convertTo(blended, CV_8U);
-//         //cv::imshow("Сшитое изображение", blended);
-//         //cv::waitKey(0);
-//         if( (i+2)%5 == 0) k = (i+2)/5;
-
-
-//         img1.release();
-//         img2.release();
-        
-//         affine_matrix.release();
-//         translation_matrix.release();
-//         result.release();
-//         img2_shifted.release();
-//         img2_transformed.release();
-//         mask.release();
-//         blended.release();
-    
-
-      
-//         points1.clear();
-//         points2.clear();
-
-//         descriptors1.release();
-//         descriptors2.release();
-//         keypoints1.clear();
-//         keypoints2.clear();
-//         good_matches.clear();
-//         knn_matches.clear();
-//     }
-//     return 0;
-//}
-
-// version 2.0
-
+// #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#include <opencv2/opencv.hpp>
+#include <vector>
 #include <iostream>
+#include <iostream>
+#include <string>
 #include "opencv2/opencv.hpp"
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
-
+#include <chrono>
 
 
 int main ()
 {
     setlocale (0, "Russian");
+    int n = 20;
+    int k = 0;
+    std::string name_image2;
+    std::string name_image3;
+    std::string name_image1;
     cv:: Mat img2;
-    std::string name_image;
-    for (int i = 2; i <=5; i++) {
+    cv:: Mat img1;
+    std::vector<cv::KeyPoint> kpoints;
+    cv::Mat dpoints;
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(2.0, cv::Size(4, 4));
 
-        std::string name_image = "wholeImage_" + std::to_string(i) + "_20.tiff";
-        cv:: Mat img1 = cv::imread(name_image, cv:: IMREAD_GRAYSCALE);
-
-        if  (i == 2) {
-            img2 = cv::imread("wholeImage_1_20.tiff", cv:: IMREAD_GRAYSCALE);
-        } else  img2 = cv::imread("img_stitch1.tiff", cv:: IMREAD_GRAYSCALE);
-
+    for (int i = 1; i < n; i++) {
+        if(i % 5 == 0){
+            k++;
+            continue;
+        }
+        name_image1 = "testing4\\wholeImage_" + std::to_string(i+1)+ "_20.tiff";
+        img1 = cv::imread(name_image1, cv:: IMREAD_GRAYSCALE);
+        
+        std:: cout << "i: "<< i << std:: endl;
+        std:: cout << "k: "<< k << std:: endl;
+        name_image3 = "stitching_image" + std::to_string(k)+ ".tiff";
+        if(i%5 == 1) {
+            
+            name_image2 = "testing4\\wholeImage_" + std::to_string(i)+ "_20.tiff";
+            img2 = cv::imread(name_image2, cv:: IMREAD_GRAYSCALE);
+            cv::normalize(img2, img2, 0, 255, cv::NORM_MINMAX);
+            clahe->apply(img2, img2);
+           
+            
+        }
+        else{
+            img2 = cv::imread(name_image3, cv:: IMREAD_GRAYSCALE);
+        }
+        
+        
+        cv::normalize(img1, img1, 0, 255, cv::NORM_MINMAX);
+        clahe->apply(img1, img1);
         img1.convertTo(img1, CV_8U);
         img2.convertTo(img2, CV_8U);
 
+        
+
         if (img1.empty() || img2.empty()){
-            std::cerr << "?? ??????? ????????? ???????????";
+            std::cerr << "image read error";
             return -1;
         }
 
-        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(2.0, cv::Size(8, 8));
-        clahe->apply(img1, img1);
-        clahe->apply(img2, img2);
-
-        //cv:: Ptr<cv::ORB> orb = cv::ORB::create();
         std::vector<cv::KeyPoint> keypoints1, keypoints2;
         cv:: Mat descriptors1, descriptors2;
+        std:: cout << "checkpointSIFT1" << std::endl;    
 
-        cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
+        cv::Mat mask_roi = cv::Mat::zeros(img2.size(), CV_8U);
+        int rect_x = 0; // РќР°С‡Р°Р»Рѕ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР° РїРѕ x
+        int rect_y = 0;                        // РќР°С‡Р°Р»Рѕ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР° РїРѕ y
+        int rect_width = img2.cols; // РЁРёСЂРёРЅР° РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР°
+        int rect_height = img1.rows;   
+        cv::Rect roi(rect_x, rect_y, rect_width, rect_height);                // РџСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРє (x, y, width, height)
+        cv::rectangle(mask_roi, roi, cv::Scalar(255), cv::FILLED);
+        cv::imwrite("mask1.png", mask_roi);
+
+
+        
+        cv::Ptr<cv::SIFT> sift= cv::SIFT::create(0, 5);
         sift->detectAndCompute(img1, cv::Mat(), keypoints1, descriptors1);
+        std:: cout << "SIFT2" << std::endl;
         sift->detectAndCompute(img2, cv::Mat(), keypoints2, descriptors2);
-
+        
         cv::FlannBasedMatcher matcher(new cv::flann::KDTreeIndexParams(), new cv::flann::SearchParams());
         descriptors1.convertTo(descriptors1, CV_32F);
         descriptors2.convertTo(descriptors2, CV_32F);
         std::vector<std::vector<cv::DMatch>> knn_matches;
         matcher.knnMatch(descriptors1, descriptors2, knn_matches, 2);
 
-        const float ratio_thresh = 0.75f;
+        std:: vector<cv::DMatch> good_matches;
+        
+
+        const float ratio_thresh = 0.65f;
+        for (const auto& match : knn_matches) {
+            if (match[0].distance < ratio_thresh * match[1].distance) {
+               good_matches.push_back(match[0]);
+            }
+        }
+        
+        std::cout << "Number of good matches SIFT1: " << good_matches.size() << std::endl;
+
+        std:: cout << "checkpoint2" << std::endl;
+
+        
+
+        if (good_matches.size() < 20) {
+
+                std::cout << "SIFT no matches" << std::endl;
+                cv::Mat res;
+                cv::Mat croppedImg = img1(cv::Rect(0, 0, img1.cols, img1.rows - 540));
+
+                if (img1.empty() || img2.empty()) {
+                    std::cerr << "Error: One or more images could not be loaded!" << std::endl;
+                    return -1;
+                }
+
+                // РџСЂРѕРІРµСЂРєР° СЂР°Р·РјРµСЂРѕРІ Рё С‚РёРїРѕРІ
+                if (img1.cols != img2.cols) {
+                    std::cout << "weight:" << img1.cols << " 1 2 " << img2.cols << std::endl;
+                    std::cerr << "Error: Image widths do not match!" << std::endl;
+                    return -1;
+                }
+                if (img1.type() != img2.type()) {
+                    std::cerr << "Error: Image types do not match!" << std::endl;
+                    return -1;
+                }
+
+                cv::vconcat(croppedImg, img2, res);
+                cv::imwrite(name_image3, res); 
+                continue;
+        }
+
+
+
+        std:: cout << "checkpoint3" << std::endl;
+        std::vector<cv::Point2f> points1, points2;
+        for (size_t i =0; i < good_matches.size(); i++){
+            points1.push_back(keypoints1[good_matches[i].queryIdx].pt);
+            points2.push_back(keypoints2[good_matches[i].trainIdx].pt);
+        }
+    
+        cv::Mat affine_matrix = cv::estimateAffinePartial2D(points2, points1);
+        std::vector<cv::Point2f> img2_corners(4);
+        img2_corners[0] = cv::Point2f(0,0);
+        img2_corners[1] = cv::Point2f(static_cast<float>(img2.cols), 0);
+        img2_corners[2] = cv::Point2f(0, static_cast<float>(img2.rows));
+        img2_corners[3] = cv::Point2f(static_cast<float>(img2.cols), static_cast<float>(img2.rows));
+        std::vector<cv::Point2f> img2_transformed_corners(4);
+
+        std::cout << "img2_corners size: " << img2_corners.size() << std::endl;
+        std::cout << "affine_matrix size: " << affine_matrix.size() << std::endl;
+        std::cout << "affine_matrix type: " << affine_matrix.type() << std::endl;
+        cv::transform(img2_corners, img2_transformed_corners, affine_matrix);
+        std:: cout << "checkpoint5" << std::endl;
+
+        float min_x = std::min(0.0f, std::min({img2_transformed_corners[0].x, img2_transformed_corners[1].x, img2_transformed_corners[2].x }));
+        float min_y = std::min(0.0f, std::min({img2_transformed_corners[0].y, img2_transformed_corners[1].y, img2_transformed_corners[2].y}));
+        float max_x = std::max(static_cast<float>(img1.cols), std::max({img2_transformed_corners[0].x, img2_transformed_corners[1].x, img2_transformed_corners[2].x}));
+        float max_y = std::max(static_cast<float>(img1.rows), std::max({img2_transformed_corners[0].y, img2_transformed_corners[1].y, img2_transformed_corners[2].y})); 
+        cv::Size result_size(img1.cols, static_cast<int>(std::ceil(max_y - min_y)));
+
+        cv::Mat result(result_size, img1.type(), cv::Scalar::all(255));
+        cv::Mat translation_matrix = (cv::Mat_<double>(2, 3) << 1, 0, -min_x, 0 , 1, -min_y);
+        cv::warpAffine(img1, result, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+       
+        cv::Mat img2_transformed;
+        cv::Mat img2_shifted;
+        cv::warpAffine(img2, img2_shifted, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+        cv::warpAffine(img2_shifted, img2_transformed, affine_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+    
+        std:: cout << "checkpoint7" << std::endl;
+        cv::Mat mask = cv::Mat::zeros(result.size(), CV_32F);
+        int blendWidth = 100;
+        cv::Rect blendRect(static_cast<int>(img2_transformed_corners[0].x), 
+                    static_cast<int>(img2_transformed_corners[0].y), 
+                    img2.cols + blendWidth, img2.rows + blendWidth);
+
+        blendRect.x = std::max(blendRect.x, 0);
+        blendRect.y = std::max(blendRect.y, 0);
+        blendRect.width = std::min(blendRect.width + blendWidth, mask.cols - blendRect.x);
+        blendRect.height = std::min(blendRect.height + blendWidth, mask.rows - blendRect.y);
+
+        for (int y = blendRect.y; y < blendRect.y + blendRect.height && y < mask.rows; ++y) {
+            for (int x = blendRect.x; x < blendRect.x + blendRect.width && x < mask.cols; ++x) {
+                float alpha = static_cast<float>(y - blendRect.y) / blendWidth;
+                alpha = std::min(std::max(alpha, 0.0f), 1.0f); 
+                
+                    mask.at<float>(y, x) = alpha;
+                
+            
+            }
+        }
+        std:: cout << "checkpoint8" << std::endl;
+        result.convertTo(result, CV_32F);
+        img2_transformed.convertTo(img2_transformed, CV_32F);
+
+        std:: cout << "checkpoint9" << std::endl;
+
+        cv::Mat blended;
+        blended = result.mul(1.0 - mask) + img2_transformed.mul(mask);
+        blended.convertTo(blended, CV_16F);
+        cv::imwrite(name_image3, blended);
+        blended.convertTo(blended, CV_8U);
+      
+
+        img1.release();
+        img2.release();
+        affine_matrix.release();
+        translation_matrix.release();
+        result.release();
+        img2_shifted.release();
+        img2_transformed.release();
+        mask.release();
+        blended.release();
+  
+        points1.clear();
+        points2.clear();
+        descriptors1.release();
+        descriptors2.release();
+        keypoints1.clear();
+        keypoints2.clear();
+        good_matches.clear();
+        
+    }
+
+
+
+
+
+
+    //Combining vertical stripes    
+    //Horizontal stitching
+
+     for (int i = 0; i < 3; i++) {
+        
+        if (i == 0){
+            name_image1 = "stitching_image" + std::to_string(i)+ ".tiff";
+        }
+        else {
+            name_image1 = "final_image.tiff";
+        }
+        name_image2 = "stitching_image" + std::to_string(i+1)+ ".tiff";
+
+        img2 = cv::imread(name_image2, cv:: IMREAD_GRAYSCALE);
+        
+        std:: cout << "i: "<< i << std:: endl;
+
+        img1= cv::imread(name_image1, cv:: IMREAD_GRAYSCALE);
+        img1.convertTo(img1, CV_8U);
+        img2.convertTo(img2, CV_8U);
+
+
+        if (img1.empty() || img2.empty()){
+            std::cerr << "?? ??????? ????????? ???????????";
+            return -1;
+        }
+
+        // cv::cuda::GpuMat img1_gpu, img2_gpu;
+        // img1_gpu.upload(img1);
+        // img2_gpu.upload(img2);
+        // cv::Ptr<cv::cuda::SIFT> sift_gpu = cv::cuda::SIFT::create();
+        // cv::cuda::GpuMat descriptors1_gpu, descriptors2_gpu;
+        // std::vector<cv::KeyPoint> keypoints1, keypoints2;
+        // sift_gpu->detectAndComputeAsync(img1_gpu, cv::noArray(), keypoints1, descriptors1_gpu);
+        // sift_gpu->detectAndComputeAsync(img2_gpu, cv::noArray(), keypoints2, descriptors2_gpu);
+        //
+        // cv::Mat descriptors1, descriptors2;
+        // descriptors1_gpu.download(descriptors1);
+        // descriptors2_gpu.download(descriptors2);
+        // for (const auto& kp : keypoints1) {
+        //     keypoints1.push_back(kp);
+        // }
+        // for (const auto& kp : keypoints2) {
+        //     keypoints2.push_back(kp);
+        // }
+
+        // // РџРѕРґРіРѕС‚Р°РІР»РёРІР°РµРј РґРµСЃРєСЂРёРїС‚РѕСЂС‹ РґР»СЏ FLANN
+        // descriptors1.convertTo(descriptors1, CV_32F);
+        // descriptors2.convertTo(descriptors2, CV_32F);
+
+        // // РЎРѕРїРѕСЃС‚Р°РІР»СЏРµРј РґРµСЃРєСЂРёРїС‚РѕСЂС‹ РЅР° CPU
+        // cv::FlannBasedMatcher matcher(new cv::flann::KDTreeIndexParams(), new cv::flann::SearchParams());
+        // std::vector<std::vector<cv::DMatch>> knn_matches;
+        // matcher.knnMatch(descriptors1, descriptors2, knn_matches, 2);
+
+        // // РџСЂРёРјРµРЅСЏРµРј С„РёР»СЊС‚СЂ Lowe
+        // const float ratio_thresh = 0.75f;
+        // std::vector<cv::DMatch> good_matches;
+        // for (const auto& match : knn_matches) {
+        //     if (match[0].distance < ratio_thresh * match[1].distance) {
+        //         good_matches.push_back(match[0]);
+        //     }
+        // }    
+        std::vector<cv::KeyPoint> keypoints1, keypoints2;
+        cv:: Mat descriptors1, descriptors2;
+        std:: cout << "checkpointSIFT1" << std::endl;    
+
+        cv::Mat mask_roi = cv::Mat::zeros(img1.size(), CV_8U);
+        int rect_x = std::max(0, img1.cols - img2.cols); // РќР°С‡Р°Р»Рѕ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР° РїРѕ x
+        int rect_y = 0;                        // РќР°С‡Р°Р»Рѕ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР° РїРѕ y
+        int rect_width = std::min(img2.cols, img1.cols); // РЁРёСЂРёРЅР° РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР°
+        int rect_height = img1.rows;   
+        cv::Rect roi(rect_x, rect_y, rect_width, rect_height);                // РџСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРє (x, y, width, height)
+        cv::rectangle(mask_roi, roi, cv::Scalar(255), cv::FILLED);
+        cv::imwrite("mask.png", mask_roi);
+        cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
+
+        sift->detectAndCompute(img1, mask_roi, keypoints1, descriptors1);
+        std:: cout << "SIFT2" << std::endl;
+        sift->detectAndCompute(img2, cv::Mat(), keypoints2, descriptors2); 
+       
+        
+
+        std:: cout << "checkpointSIFT2" << std::endl;
+    
+        std::cout << "РўРёРї РґРµСЃРєСЂРёРїС‚РѕСЂРѕРІ: " << descriptors1.type() << std::endl;
+        std::cout << "РўРёРї РґРµСЃРєСЂРёРїС‚РѕСЂРѕРІ: " << descriptors2.type() << std::endl;
+        
+        cv::FlannBasedMatcher matcher(new cv::flann::KDTreeIndexParams(), new cv::flann::SearchParams());
+        descriptors1.convertTo(descriptors1, CV_32F);
+        descriptors2.convertTo(descriptors2, CV_32F);
+        std::vector<std::vector<cv::DMatch>> knn_matches;
+        matcher.knnMatch(descriptors1, descriptors2, knn_matches, 2);
+
+
+        std:: cout << "checkpoint2" << std::endl;
+
+        const float ratio_thresh = 0.65f;
         std:: vector<cv::DMatch> good_matches;
         
         for (const auto& match : knn_matches) {
@@ -346,115 +337,161 @@ int main ()
                 good_matches.push_back(match[0]);
             }
         }
-        if (good_matches.size() < 4) {
 
-            good_matches.clear();  // Очищаем совпадения
-            keypoints1.clear();
-            keypoints2.clear();
+        std::cout << "Number of good matches SIFT1: " << good_matches.size() << std::endl;
 
-            cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
-            akaze->detectAndCompute(img1, cv::Mat(), keypoints1, descriptors1);
-            akaze->detectAndCompute(img2, cv::Mat(), keypoints2, descriptors2);
+        if (good_matches.size() < 10) {
 
-            cv::BFMatcher bfMatcher(cv::NORM_HAMMING, true);  // true для поиска лучших совпадений          
-            bfMatcher.match(descriptors1, descriptors2, good_matches);
-        
-        // Проверяем снова количество совпадений
-            if (good_matches.size() < 7) {
-                std::cerr << "Недостаточно совпадений для ORB." << std::endl;
-                return -1;
-            }
+            std::cout << "SIFT no matches" << std::endl;
+                cv::Mat res;
+                cv::Mat croppedImg = img1(cv::Rect(0, 0, img1.cols-580, img1.rows));
 
+                if (img1.empty() || img2.empty()) {
+                    std::cerr << "Error: One or more images could not be loaded!" << std::endl;
+                    return -1;
+                }
 
+                // РџСЂРѕРІРµСЂРєР° СЂР°Р·РјРµСЂРѕРІ Рё С‚РёРїРѕРІ
+                if (img1.rows != img2.rows) {
+                    std::cout << "weight:" << img1.rows << " 1 2 " << img2.rows << std::endl;
+                    std::cerr << "Error: Image widths do not match!" << std::endl;
+                    return -1;
+                }
+                if (img1.type() != img2.type()) {
+                    std::cerr << "Error: Image types do not match!" << std::endl;
+                    return -1;
+                }
+
+                cv::hconcat(croppedImg, img2, res);
+                cv::imwrite("final_image.tiff", res); 
+                continue;
         }
+
+
+
+        
+
 
         std::vector<cv::Point2f> points1, points2;
 
         for (size_t i =0; i < good_matches.size(); i++){
 
+            if (good_matches[i].queryIdx >= keypoints1.size() || good_matches[i].trainIdx >= keypoints2.size()) {
+            std::cerr << "Error: Index out of range at match " << i << std::endl;
+            }
+
             points1.push_back(keypoints1[good_matches[i].queryIdx].pt);
             points2.push_back(keypoints2[good_matches[i].trainIdx].pt);
         }
-
-
     
         cv::Mat affine_matrix = cv::estimateAffinePartial2D(points2, points1);
-    
 
-        
-
-        std::vector<cv::Point2f> img2_corners(3);
+        std::vector<cv::Point2f> img2_corners(4);
 
         img2_corners[0] = cv::Point2f(0,0);
         img2_corners[1] = cv::Point2f(static_cast<float>(img2.cols), 0);
         img2_corners[2] = cv::Point2f(0, static_cast<float>(img2.rows));
-        std::vector<cv::Point2f> img2_transformed_corners(3);
+        img2_corners[3] = cv::Point2f(static_cast<float>(img2.cols), static_cast<float>(img2.rows));
+        std::vector<cv::Point2f> img2_transformed_corners(4);
+
+        std::cout << "img2_corners size: " << img2_corners.size() << std::endl;
+        std::cout << "affine_matrix size: " << affine_matrix.size() << std::endl;
+        std::cout << "affine_matrix type: " << affine_matrix.type() << std::endl;
         cv::transform(img2_corners, img2_transformed_corners, affine_matrix);
+
+
+        std:: cout << "checkpoint5" << std::endl;
 
         float min_x = std::min(0.0f, std::min({img2_transformed_corners[0].x, img2_transformed_corners[1].x, img2_transformed_corners[2].x }));
         float min_y = std::min(0.0f, std::min({img2_transformed_corners[0].y, img2_transformed_corners[1].y, img2_transformed_corners[2].y}));
         float max_x = std::max(static_cast<float>(img1.cols), std::max({img2_transformed_corners[0].x, img2_transformed_corners[1].x, img2_transformed_corners[2].x}));
         float max_y = std::max(static_cast<float>(img1.rows), std::max({img2_transformed_corners[0].y, img2_transformed_corners[1].y, img2_transformed_corners[2].y}));
-        
-        cv::Size result_size(static_cast<int>(std::ceil(max_x - min_x)), static_cast<int>(std::ceil(max_y - min_y)));
-
+         
+         
+        cv::Size result_size(static_cast<int>(std::ceil(max_x - min_x)), img1.rows);
         cv::Mat result(result_size, img1.type(), cv::Scalar::all(255));
-
         cv:: Mat translation_matrix = (cv::Mat_<double>(2, 3) << 1, 0, -min_x, 0 , 1, -min_y);
-        
         cv::warpAffine(img1, result, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-        // cv::imshow("img1", img1);
-        // cv::imshow("img2", img2);
-        //cv::drawKeypoints(img1, keypoints1, result);
-        //cv::drawKeypoints(img2, keypoints2, result);
         
-    
-        cv::Mat img2_transformed;
-
+        std:: cout << "checkpoint6" << std::endl;
         cv::Mat img2_shifted;
         cv::warpAffine(img2, img2_shifted, translation_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
 
-
+        cv::Mat img2_transformed;
         cv::warpAffine(img2_shifted, img2_transformed, affine_matrix, result_size, cv::INTER_LINEAR, cv::BORDER_REPLICATE);
     
-
-    
-        
+        std:: cout << "checkpoint7" << std::endl;
         cv::Mat mask = cv::Mat::zeros(result.size(), CV_32F);
-
-        int blendWidth = 50; 
+        int blendWidth = 400;
         
         cv::Rect blendRect(static_cast<int>(img2_transformed_corners[0].x), 
                     static_cast<int>(img2_transformed_corners[0].y), 
-                    img2.cols + blendWidth, img2.rows + blendWidth);
-        
+                    img2.cols + blendWidth, img2.rows);
 
-        
+        blendRect.x = std::max(blendRect.x, 0);
+        blendRect.y = std::max(blendRect.y, 0);
+        blendRect.width = std::min(blendRect.width, mask.cols - blendRect.x);
+        blendRect.height = std::min(blendRect.height, mask.rows - blendRect.y);
+
         for (int y = blendRect.y; y < blendRect.y + blendRect.height && y < mask.rows; ++y) {
             for (int x = blendRect.x; x < blendRect.x + blendRect.width && x < mask.cols; ++x) {
                 float alpha = static_cast<float>(x - blendRect.x) / blendWidth;
-                alpha = std::min(std::max(alpha, 0.0f), 1.0f); 
-                mask.at<float>(y, x) = alpha;
+                alpha = std::min(std::max(alpha, 0.0f), 1.0f); // ГЋГЈГ°Г Г­ГЁГ·ГЁГўГ ГҐГ¬ Г§Г­Г Г·ГҐГ­ГЁГҐ Гў Г¤ГЁГ ГЇГ Г§Г®Г­ГҐ [0, 1]
+                
+                    mask.at<float>(y, x) = alpha;
+                
+            
             }
         }
-        
-
+   
+        std:: cout << "checkpoint8" << std::endl;
 
         result.convertTo(result, CV_32F);
         img2_transformed.convertTo(img2_transformed, CV_32F);
 
+        std:: cout << "checkpoint9" << std::endl;
+    
 
         cv::Mat blended;
-        blended = result.mul(1.0 - mask) + img2_transformed.mul(mask);
-    
-        
 
+        blended = result.mul(1.0 - mask) + img2_transformed.mul(mask);
+        
         blended.convertTo(blended, CV_16F);
 
-
-        cv::imwrite("img_stitch1.tiff", blended);
     
+        
+        cv::imwrite("final_image.tiff", blended);
+        
+
+
+        img1.release();
+        img2.release();
+        
+        affine_matrix.release();
+        translation_matrix.release();
+        result.release();
+        img2_shifted.release();
+        img2_transformed.release();
+        mask.release();
+        blended.release();
+    
+
+      
+        points1.clear();
+        points2.clear();
+
+        descriptors1.release();
+        descriptors2.release();
+        keypoints1.clear();
+        keypoints2.clear();
+        good_matches.clear();
+        knn_matches.clear();
     }
 
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "times: " << elapsed.count() << " s." << std::endl;
     return 0;
 }
+
